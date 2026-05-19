@@ -6,9 +6,10 @@ cd "$REPO_ROOT"
 
 MAIN_RUN="${1:-$(cat outputs/paper_runs/latest_main_run.txt)}"
 ABLATION_RUN="${2:-$(cat outputs/paper_runs/latest_ablation_run.txt)}"
-MANIFEST="outputs/paper_runs/PAPER_RESULTS.md"
+PAPER_RUN_DIR="${3:-outputs/paper_runs/manual_$(date -u +%Y%m%d_%H%M%S)}"
+MANIFEST="$PAPER_RUN_DIR/PAPER_RESULTS.md"
 
-mkdir -p outputs/paper_runs
+mkdir -p "$PAPER_RUN_DIR"
 
 cat > "$MANIFEST" <<EOF
 # SolarChain-Eval Paper Results
@@ -30,6 +31,7 @@ Primary data files:
 - \`$MAIN_RUN/actions.csv\`
 - \`$MAIN_RUN/city_hour_policy.csv\`
 - \`$MAIN_RUN/config_snapshot.json\`
+- \`$MAIN_RUN/run_metadata.json\`
 
 Trained models:
 
@@ -39,9 +41,9 @@ Trained models:
 
 Main figures:
 
-- \`figures/main/learning_curves.png\`
-- \`figures/main/safety_utility_frontier.png\`
-- \`figures/main/city_hour_liquidity_heatmap.png\`
+- \`$PAPER_RUN_DIR/figures/main/learning_curves.png\`
+- \`$PAPER_RUN_DIR/figures/main/safety_utility_frontier.png\`
+- \`$PAPER_RUN_DIR/figures/main/city_hour_liquidity_heatmap.png\`
 
 ## No-Physics-Penalty Ablation
 
@@ -58,14 +60,20 @@ Primary data files:
 - \`$ABLATION_RUN/actions.csv\`
 - \`$ABLATION_RUN/city_hour_policy.csv\`
 - \`$ABLATION_RUN/config_snapshot.json\`
+- \`$ABLATION_RUN/run_metadata.json\`
 
 Ablation figures:
 
-- \`figures/ablation_no_physics_penalty/learning_curves.png\`
-- \`figures/ablation_no_physics_penalty/safety_utility_frontier.png\`
-- \`figures/ablation_no_physics_penalty/city_hour_liquidity_heatmap.png\`
+- \`$PAPER_RUN_DIR/figures/ablation_no_physics_penalty/learning_curves.png\`
+- \`$PAPER_RUN_DIR/figures/ablation_no_physics_penalty/safety_utility_frontier.png\`
+- \`$PAPER_RUN_DIR/figures/ablation_no_physics_penalty/city_hour_liquidity_heatmap.png\`
 
 ## Metrics To Report
+
+Batch-level metadata:
+
+- \`$PAPER_RUN_DIR/paper_run_metadata.json\`
+- \`$PAPER_RUN_DIR/PAPER_RESULTS.md\`
 
 Use \`summary.json\` for the main comparison table:
 

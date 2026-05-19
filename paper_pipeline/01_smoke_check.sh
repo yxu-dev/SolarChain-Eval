@@ -30,9 +30,9 @@ python scripts/train.py \
 echo "[4/4] Figure generation smoke"
 python scripts/make_figures.py \
   --run-dir "$SMOKE_RUN" \
-  --figures-dir figures/smoke
+  --figures-dir outputs/paper_runs/smoke/figures
 
 echo "Smoke check passed."
 echo "Smoke run: $SMOKE_RUN"
-echo "Smoke figures: figures/smoke"
+echo "Smoke figures: outputs/paper_runs/smoke/figures"
 

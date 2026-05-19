@@ -28,15 +28,15 @@ For longer paper runs, increase `--timesteps` and `--episodes`.
 
 ## Linux Paper Pipeline
 
-For a Linux machine, use the bash workflow in `pipeline/`:
+For a Linux machine, use the bash workflow in `paper_pipeline/`:
 
 ```bash
 bash paper_pipeline/00_setup_linux.sh
 bash paper_pipeline/01_smoke_check.sh
-TIMESTEPS=300000 EPISODES=20 bash paper_pipeline/02_run_paper_experiments.sh
+PAPER_RUN_ID=paper_final TIMESTEPS=300000 EPISODES=20 bash paper_pipeline/02_run_paper_experiments.sh
 ```
 
-See `paper_pipeline/README.md` for the full process and the mapping from output files to paper tables and figures.
+Each invocation of `02_run_paper_experiments.sh` creates a separate `outputs/paper_runs/<paper_run_id>/` directory with metadata, run pointers, figures, and a `PAPER_RESULTS.md` manifest. See `paper_pipeline/README.md` for the full process and the mapping from output files to paper tables and figures.
 
 ## Outputs
 

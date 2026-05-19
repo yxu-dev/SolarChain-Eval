@@ -206,6 +206,8 @@ tempCodeRunnerFile.py
 # SolarChain-Eval generated artifacts
 outputs/runs/*
 !outputs/runs/.gitkeep
+outputs/paper_runs/*
+!outputs/paper_runs/.gitkeep
 figures/*
 !figures/.gitkeep
 

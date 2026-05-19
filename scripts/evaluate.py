@@ -13,6 +13,7 @@ from stable_baselines3 import DQN, PPO, SAC
 from solarchain_eval.config import load_config
 from solarchain_eval.evaluate import SB3Policy, evaluate_policies
 from solarchain_eval.policies import make_builtin_policy
+from solarchain_eval.run_metadata import write_run_metadata
 
 
 def main() -> None:
@@ -53,7 +54,15 @@ def main() -> None:
     else:
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_dir = base_output / f"{stamp}_{args.run_name}"
-    evaluate_policies(policies, config, args.episodes or config.evaluation.episodes, output_dir)
+    episodes = args.episodes or config.evaluation.episodes
+    evaluate_policies(policies, config, episodes, output_dir)
+    write_run_metadata(
+        output_dir,
+        run_type="evaluate",
+        args={**vars(args), "resolved_episodes": episodes, "output_dir": str(output_dir)},
+        config=config,
+        extra={"policies": [getattr(policy, "name", "policy") for policy in policies]},
+    )
     print(f"Wrote evaluation outputs to {output_dir}")
 
 
