@@ -208,8 +208,7 @@ outputs/runs/*
 !outputs/runs/.gitkeep
 outputs/paper_runs/*
 !outputs/paper_runs/.gitkeep
-figures/*
-!figures/.gitkeep
+figures
 
 # Ruff stuff:
 .ruff_cache/
