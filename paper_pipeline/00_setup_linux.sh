@@ -18,11 +18,15 @@ python -m pip install -e .
 python - <<'PY'
 import sys
 import gymnasium
+import openai
+import pydantic
 import pvlib
 import stable_baselines3
 
 print("Python:", sys.executable)
 print("Gymnasium:", gymnasium.__version__)
+print("OpenAI:", openai.__version__)
+print("Pydantic:", pydantic.__version__)
 print("pvlib:", pvlib.__version__)
 print("Stable-Baselines3:", stable_baselines3.__version__)
 PY

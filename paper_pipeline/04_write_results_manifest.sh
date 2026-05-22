@@ -7,6 +7,8 @@ cd "$REPO_ROOT"
 MAIN_RUN="${1:-$(cat outputs/paper_runs/latest_main_run.txt)}"
 ABLATION_RUN="${2:-$(cat outputs/paper_runs/latest_ablation_run.txt)}"
 PAPER_RUN_DIR="${3:-outputs/paper_runs/manual_$(date -u +%Y%m%d_%H%M%S)}"
+AGENTIC_RUN="${4:-}"
+AGENTIC_ABLATION_RUN="${5:-}"
 MANIFEST="$PAPER_RUN_DIR/PAPER_RESULTS.md"
 
 mkdir -p "$PAPER_RUN_DIR"
@@ -90,6 +92,33 @@ Ablation figures:
 - \`$PAPER_RUN_DIR/figures/ablation_no_physics_penalty/safety_utility_frontier.png\`
 - \`$PAPER_RUN_DIR/figures/ablation_no_physics_penalty/city_hour_liquidity_heatmap.png\`
 
+## Eval-Only Agentic Layer
+
+The agentic comparison evaluates trained RL policies with an evaluation-only LLM Planner + LLM Auditor between policy prediction and \`env.step()\`. Training remains unchanged.
+
+Agentic main run directory:
+
+\`\`\`text
+${AGENTIC_RUN:-not generated}
+\`\`\`
+
+Agentic no-physics run directory:
+
+\`\`\`text
+${AGENTIC_ABLATION_RUN:-not generated}
+\`\`\`
+
+Agentic files, when generated:
+
+- \`${AGENTIC_RUN:-<agentic_run>}/summary.json\`
+- \`${AGENTIC_RUN:-<agentic_run>}/metrics.csv\`
+- \`${AGENTIC_RUN:-<agentic_run>}/actions.csv\`
+- \`${AGENTIC_RUN:-<agentic_run>}/agentic_logs.jsonl\`
+- \`${AGENTIC_ABLATION_RUN:-<agentic_ablation_run>}/summary.json\`
+- \`${AGENTIC_ABLATION_RUN:-<agentic_ablation_run>}/agentic_logs.jsonl\`
+- \`$PAPER_RUN_DIR/figures/agentic/*.png\`
+- \`$PAPER_RUN_DIR/figures/agentic_no_physics_penalty/*.png\`
+
 ## Metrics To Report
 
 Batch-level metadata:
@@ -110,11 +139,24 @@ Use \`summary.json\` for the main comparison table:
 
 Use the ablation \`summary.json\` to compare whether removing the \`P_max\` penalty increases \`physics_violation_rate\` and \`artificial_liquidity_MWh\`.
 
+Use agentic \`summary.json\` files for the KDD Workshop agentic-AI evaluation claims:
+
+- plan_validity_rate
+- audit_call_rate
+- revision_rate
+- action_modification_rate
+- avg_action_delta_from_auditor
+- llm_failure_count
+- mock_llm_used
+
+If \`mock_llm_used=true\`, treat the run as a software smoke check rather than a final LLM result.
+
 ## Figure Mapping
 
 - Learning curves: reward vs. episode for PPO, SAC, DQN, Static 1:3, Random, Myopic Greedy.
 - Safety-utility frontier: physics violation rate vs. cumulative reward.
 - Spatio-temporal heatmap: RL liquidity split by city/hour compared to Static 1:3.
+- Agentic figures: same plot types for RL policies evaluated with the planner/auditor layer.
 
 EOF
 

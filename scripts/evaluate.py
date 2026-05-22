@@ -10,6 +10,8 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from stable_baselines3 import DQN, PPO, SAC
 
+from solarchain_eval.agent.llm_client import make_llm_client
+from solarchain_eval.agent.wrappers import AgenticConfig
 from solarchain_eval.config import load_config
 from solarchain_eval.evaluate import SB3Policy, evaluate_policies
 from solarchain_eval.policies import make_builtin_policy
@@ -28,6 +30,14 @@ def main() -> None:
     parser.add_argument("--run-name", default="eval")
     parser.add_argument("--no-timestamp", action="store_true")
     parser.add_argument("--no-physics-penalty", action="store_true")
+    parser.add_argument("--agentic-mode", choices=["none", "planner", "planner_auditor"], default="none")
+    parser.add_argument("--planner", choices=["none", "rule", "llm"], default="none")
+    parser.add_argument("--auditor", choices=["none", "rule", "llm"], default="none")
+    parser.add_argument("--audit-trigger", choices=["event", "always"], default="event")
+    parser.add_argument("--llm-provider", default=None)
+    parser.add_argument("--llm-model", default=None)
+    parser.add_argument("--llm-base-url", default=None)
+    parser.add_argument("--save-agentic-logs", action="store_true")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -55,13 +65,38 @@ def main() -> None:
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_dir = base_output / f"{stamp}_{args.run_name}"
     episodes = args.episodes or config.evaluation.episodes
-    evaluate_policies(policies, config, episodes, output_dir)
+    agentic_config = AgenticConfig(
+        agentic_mode=args.agentic_mode,
+        planner=args.planner,
+        auditor=args.auditor,
+        audit_trigger=args.audit_trigger,
+        save_agentic_logs=args.save_agentic_logs,
+    )
+    llm_client = None
+    if args.agentic_mode != "none" and (args.planner == "llm" or args.auditor == "llm"):
+        llm_client = make_llm_client(
+            provider=args.llm_provider,
+            model=args.llm_model,
+            base_url=args.llm_base_url,
+        )
+    evaluate_policies(
+        policies,
+        config,
+        episodes,
+        output_dir,
+        agentic_config=agentic_config if args.agentic_mode != "none" else None,
+        llm_client=llm_client,
+    )
     write_run_metadata(
         output_dir,
         run_type="evaluate",
         args={**vars(args), "resolved_episodes": episodes, "output_dir": str(output_dir)},
         config=config,
-        extra={"policies": [getattr(policy, "name", "policy") for policy in policies]},
+        extra={
+            "policies": [getattr(policy, "name", "policy") for policy in policies],
+            "agentic": agentic_config.__dict__,
+            "mock_llm_used": bool(getattr(llm_client, "mock_used", False)) if llm_client else False,
+        },
     )
     print(f"Wrote evaluation outputs to {output_dir}")
 
