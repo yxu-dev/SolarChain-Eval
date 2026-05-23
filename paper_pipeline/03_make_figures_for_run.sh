@@ -13,7 +13,13 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate SolarChain-rl
 
 RUN_DIR="$1"
-FIGURES_DIR="${2:-figures/$(basename "$RUN_DIR")}"
+if [[ $# -ge 2 ]]; then
+  FIGURES_DIR="$2"
+elif [[ "$(basename "$(dirname "$RUN_DIR")")" == "runs" ]]; then
+  FIGURES_DIR="$(dirname "$(dirname "$RUN_DIR")")/figures/$(basename "$RUN_DIR")"
+else
+  FIGURES_DIR="$RUN_DIR/figures"
+fi
 CONFIG="${CONFIG:-configs/month_2026_04.yaml}"
 
 python scripts/make_figures.py \

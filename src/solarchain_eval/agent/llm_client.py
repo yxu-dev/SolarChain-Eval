@@ -5,58 +5,15 @@ import os
 from typing import Any
 
 from .schemas import (
-    ActionBounds,
-    ActionValues,
-    AuditPolicy,
     AuditorOutput,
     PlannerOutput,
-    RiskAssessment,
     auditor_json_schema,
     planner_json_schema,
 )
 
 
-class MockLLMClient:
-    """Deterministic schema-compatible client for local tests and missing credentials."""
-
-    mock_used = True
-    failure_count = 0
-
-    def plan_structured(self, messages: list[dict[str, str]]) -> PlannerOutput:
-        return PlannerOutput(
-            governance_mode="mock_risk_bounded",
-            action_bounds=ActionBounds(
-                reward_ratio=[0.08, 0.50],
-                liquidity_ratio=[0.30, 0.85],
-                burn_rate=[0.0, 0.16],
-            ),
-            audit_policy=AuditPolicy(
-                force_audit_if_violation_rate_above=0.01,
-                force_audit_if_gap_below=-0.10,
-                force_audit_if_action_jitter_above=0.25,
-                force_audit_if_static_slippage_above=0.75,
-            ),
-            rationale="Mock structured plan for deterministic local evaluation.",
-        )
-
-    def audit_structured(self, messages: list[dict[str, str]]) -> AuditorOutput:
-        return AuditorOutput(
-            decision="approve",
-            final_action=ActionValues(reward_ratio=0.25, liquidity_ratio=0.75, burn_rate=0.02),
-            risk_assessment=RiskAssessment(
-                physics_risk="low",
-                liquidity_risk="low",
-                jitter_risk="low",
-                fairness_risk="low",
-            ),
-            reason="Mock structured audit approves by default.",
-        )
-
-
 class OpenAICompatibleClient:
     """OpenAI SDK client using strict structured outputs with chat fallback."""
-
-    mock_used = False
 
     def __init__(
         self,
@@ -145,21 +102,26 @@ def make_llm_client(
     model: str | None = None,
     base_url: str | None = None,
     api_key: str | None = None,
-) -> MockLLMClient | OpenAICompatibleClient:
+) -> OpenAICompatibleClient:
     resolved_provider = provider or os.getenv("SOLARCHAIN_LLM_PROVIDER") or "openai"
     resolved_api_key = api_key or os.getenv("SOLARCHAIN_LLM_API_KEY") or os.getenv("OPENAI_API_KEY")
     resolved_base_url = base_url or os.getenv("SOLARCHAIN_LLM_BASE_URL") or os.getenv("OPENAI_BASE_URL")
-    resolved_model = model or os.getenv("SOLARCHAIN_LLM_MODEL") or os.getenv("OPENAI_MODEL") or "gpt-4o-mini"
+    resolved_model = model or os.getenv("SOLARCHAIN_LLM_MODEL") or os.getenv("OPENAI_MODEL")
 
     if not resolved_api_key:
-        return MockLLMClient()
-
-    try:
-        return OpenAICompatibleClient(
-            api_key=resolved_api_key,
-            model=resolved_model,
-            base_url=resolved_base_url,
-            provider=resolved_provider,
+        raise RuntimeError(
+            "LLM API key is required for --planner llm or --auditor llm. "
+            "Set SOLARCHAIN_LLM_API_KEY or OPENAI_API_KEY."
         )
-    except RuntimeError:
-        return MockLLMClient()
+    if not resolved_model:
+        raise RuntimeError(
+            "LLM model is required for --planner llm or --auditor llm. "
+            "Set SOLARCHAIN_LLM_MODEL or OPENAI_MODEL."
+        )
+
+    return OpenAICompatibleClient(
+        api_key=resolved_api_key,
+        model=resolved_model,
+        base_url=resolved_base_url,
+        provider=resolved_provider,
+    )

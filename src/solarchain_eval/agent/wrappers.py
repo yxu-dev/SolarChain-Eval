@@ -45,7 +45,6 @@ class AgenticActionProcessor:
             "action_modification_count": 0,
             "action_delta_sum": 0.0,
             "llm_failure_count": 0,
-            "mock_llm_used": False,
         }
         self._planner_failure_seen = 0
         self._auditor_failure_seen = 0
@@ -152,7 +151,6 @@ def make_agentic_processor(
         auditor=auditor,
         agentic_config=agentic_config,
     )
-    processor.stats["mock_llm_used"] = bool(getattr(llm_client, "mock_used", False))
     return processor
 
 
@@ -168,5 +166,4 @@ def agentic_metrics(stats: dict[str, Any], step_count: int) -> dict[str, Any]:
         "action_modification_rate": float(modification_count / max(step_count, 1)),
         "avg_action_delta_from_auditor": float(stats.get("action_delta_sum", 0.0) / max(step_count, 1)),
         "llm_failure_count": int(stats.get("llm_failure_count", 0)),
-        "mock_llm_used": bool(stats.get("mock_llm_used", False)),
     }

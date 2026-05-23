@@ -83,17 +83,11 @@ class LLMPlanner:
         self.failure_count = 0
 
     def plan(self, episode_context: dict[str, Any]) -> PlannerOutput:
-        try:
-            payload = self.llm_client.plan_structured(planner_messages(episode_context))
-            plan, valid, error = validate_planner_output(payload, self.config)
-            self.last_valid = valid
-            if not valid:
-                self.failure_count += 1
-                plan.rationale = f"{plan.rationale} Validation fallback: {error}"
-            return plan
-        except Exception as exc:
+        payload = self.llm_client.plan_structured(planner_messages(episode_context))
+        plan, valid, error = validate_planner_output(payload, self.config)
+        self.last_valid = valid
+        if not valid:
             self.failure_count += 1
             self.last_valid = False
-            plan = safe_default_plan(self.config)
-            plan.rationale = f"{plan.rationale} LLM planner fallback: {exc}"
-            return plan
+            raise RuntimeError(f"LLM planner structured output validation failed: {error}")
+        return plan

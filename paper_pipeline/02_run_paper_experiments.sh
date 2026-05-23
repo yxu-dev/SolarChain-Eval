@@ -20,16 +20,21 @@ AGENTIC_PLANNER="${AGENTIC_PLANNER:-llm}"
 AGENTIC_AUDITOR="${AGENTIC_AUDITOR:-llm}"
 AGENTIC_AUDIT_TRIGGER="${AGENTIC_AUDIT_TRIGGER:-event}"
 PAPER_RUN_ID="${PAPER_RUN_ID:-$(date -u +%Y%m%d_%H%M%S)_paper}"
-PAPER_RUN_DIR="outputs/paper_runs/$PAPER_RUN_ID"
-MAIN_RUN_NAME="${PAPER_RUN_ID}_main"
-ABLATION_RUN_NAME="${PAPER_RUN_ID}_no_physics_penalty"
-AGENTIC_RUN_NAME="${PAPER_RUN_ID}_agentic_${AGENTIC_PLANNER}_${AGENTIC_AUDITOR}"
-AGENTIC_ABLATION_RUN_NAME="${PAPER_RUN_ID}_agentic_${AGENTIC_PLANNER}_${AGENTIC_AUDITOR}_no_physics_penalty"
+PAPER_RUN_DIR="${PAPER_RUN_DIR:-outputs/$PAPER_RUN_ID}"
+RUNS_DIR="$PAPER_RUN_DIR/runs"
+MAIN_RUN_NAME="main"
+ABLATION_RUN_NAME="no_physics_penalty"
+AGENTIC_RUN_NAME="agentic_${AGENTIC_PLANNER}_${AGENTIC_AUDITOR}"
+AGENTIC_ABLATION_RUN_NAME="agentic_${AGENTIC_PLANNER}_${AGENTIC_AUDITOR}_no_physics_penalty"
+MAIN_RUN="$RUNS_DIR/$MAIN_RUN_NAME"
+ABLATION_RUN="$RUNS_DIR/$ABLATION_RUN_NAME"
+AGENTIC_RUN="$RUNS_DIR/$AGENTIC_RUN_NAME"
+AGENTIC_ABLATION_RUN="$RUNS_DIR/$AGENTIC_ABLATION_RUN_NAME"
 MAIN_FIGURES_DIR="$PAPER_RUN_DIR/figures/main"
 ABLATION_FIGURES_DIR="$PAPER_RUN_DIR/figures/ablation_no_physics_penalty"
 AGENTIC_FIGURES_DIR="$PAPER_RUN_DIR/figures/agentic"
 AGENTIC_ABLATION_FIGURES_DIR="$PAPER_RUN_DIR/figures/agentic_no_physics_penalty"
-mkdir -p "$PAPER_RUN_DIR" "$MAIN_FIGURES_DIR" "$ABLATION_FIGURES_DIR" "$AGENTIC_FIGURES_DIR" "$AGENTIC_ABLATION_FIGURES_DIR"
+mkdir -p "$PAPER_RUN_DIR" "$RUNS_DIR" "$MAIN_FIGURES_DIR" "$ABLATION_FIGURES_DIR" "$AGENTIC_FIGURES_DIR" "$AGENTIC_ABLATION_FIGURES_DIR"
 
 echo "Running SolarChain-Eval paper experiments"
 echo "PAPER_RUN_ID=$PAPER_RUN_ID"
@@ -101,10 +106,16 @@ cat > "$PAPER_RUN_DIR/paper_run_metadata.json" <<EOF
   "agentic_planner": "$AGENTIC_PLANNER",
   "agentic_auditor": "$AGENTIC_AUDITOR",
   "agentic_audit_trigger": "$AGENTIC_AUDIT_TRIGGER",
+  "paper_run_dir": "$PAPER_RUN_DIR",
+  "runs_dir": "$RUNS_DIR",
   "main_run_name": "$MAIN_RUN_NAME",
   "ablation_run_name": "$ABLATION_RUN_NAME",
   "agentic_run_name": "$AGENTIC_RUN_NAME",
   "agentic_ablation_run_name": "$AGENTIC_ABLATION_RUN_NAME",
+  "main_run": "$MAIN_RUN",
+  "ablation_run": "$ABLATION_RUN",
+  "agentic_run": "$AGENTIC_RUN",
+  "agentic_ablation_run": "$AGENTIC_ABLATION_RUN",
   "git_commit": "$(git rev-parse HEAD 2>/dev/null || true)",
   "git_status_short": $(python - <<'PY'
 import json
@@ -125,11 +136,11 @@ python scripts/run_all_baselines.py \
   --config "$CONFIG" \
   --timesteps "$TIMESTEPS" \
   --episodes "$EPISODES" \
+  --output-dir "$RUNS_DIR" \
   --run-name "$MAIN_RUN_NAME"
 
-MAIN_RUN="outputs/runs/$MAIN_RUN_NAME"
 echo "$MAIN_RUN" > "$PAPER_RUN_DIR/main_run.txt"
-echo "$MAIN_RUN" > outputs/paper_runs/latest_main_run.txt
+echo "$MAIN_RUN" > "$PAPER_RUN_DIR/latest_main_run.txt"
 echo "Main run: $MAIN_RUN"
 
 echo "[2/9] No-physics-penalty ablation"
@@ -137,16 +148,14 @@ python scripts/run_all_baselines.py \
   --config "$CONFIG" \
   --timesteps "$TIMESTEPS" \
   --episodes "$EPISODES" \
+  --output-dir "$RUNS_DIR" \
   --run-name "$ABLATION_RUN_NAME" \
   --no-physics-penalty
 
-ABLATION_RUN="outputs/runs/$ABLATION_RUN_NAME"
 echo "$ABLATION_RUN" > "$PAPER_RUN_DIR/ablation_run.txt"
-echo "$ABLATION_RUN" > outputs/paper_runs/latest_ablation_run.txt
+echo "$ABLATION_RUN" > "$PAPER_RUN_DIR/latest_ablation_run.txt"
 echo "Ablation run: $ABLATION_RUN"
 
-AGENTIC_RUN=""
-AGENTIC_ABLATION_RUN=""
 if [[ "$RUN_AGENTIC" == "1" ]]; then
   echo "[3/9] Eval-only LLM/agentic layer on trained RL policies"
   python scripts/evaluate.py \
@@ -156,6 +165,7 @@ if [[ "$RUN_AGENTIC" == "1" ]]; then
     --ppo-model "$MAIN_RUN/models/ppo/ppo_model.zip" \
     --sac-model "$MAIN_RUN/models/sac/sac_model.zip" \
     --dqn-model "$MAIN_RUN/models/dqn/dqn_model.zip" \
+    --output-dir "$RUNS_DIR" \
     --run-name "$AGENTIC_RUN_NAME" \
     --no-timestamp \
     --agentic-mode planner_auditor \
@@ -164,9 +174,8 @@ if [[ "$RUN_AGENTIC" == "1" ]]; then
     --audit-trigger "$AGENTIC_AUDIT_TRIGGER" \
     --save-agentic-logs
 
-  AGENTIC_RUN="outputs/runs/$AGENTIC_RUN_NAME"
   echo "$AGENTIC_RUN" > "$PAPER_RUN_DIR/agentic_run.txt"
-  echo "$AGENTIC_RUN" > outputs/paper_runs/latest_agentic_run.txt
+  echo "$AGENTIC_RUN" > "$PAPER_RUN_DIR/latest_agentic_run.txt"
   echo "Agentic run: $AGENTIC_RUN"
 
   echo "[4/9] Eval-only LLM/agentic layer under no-physics-penalty"
@@ -177,6 +186,7 @@ if [[ "$RUN_AGENTIC" == "1" ]]; then
     --ppo-model "$ABLATION_RUN/models/ppo/ppo_model.zip" \
     --sac-model "$ABLATION_RUN/models/sac/sac_model.zip" \
     --dqn-model "$ABLATION_RUN/models/dqn/dqn_model.zip" \
+    --output-dir "$RUNS_DIR" \
     --run-name "$AGENTIC_ABLATION_RUN_NAME" \
     --no-timestamp \
     --no-physics-penalty \
@@ -186,13 +196,14 @@ if [[ "$RUN_AGENTIC" == "1" ]]; then
     --audit-trigger "$AGENTIC_AUDIT_TRIGGER" \
     --save-agentic-logs
 
-  AGENTIC_ABLATION_RUN="outputs/runs/$AGENTIC_ABLATION_RUN_NAME"
   echo "$AGENTIC_ABLATION_RUN" > "$PAPER_RUN_DIR/agentic_ablation_run.txt"
-  echo "$AGENTIC_ABLATION_RUN" > outputs/paper_runs/latest_agentic_ablation_run.txt
+  echo "$AGENTIC_ABLATION_RUN" > "$PAPER_RUN_DIR/latest_agentic_ablation_run.txt"
   echo "Agentic ablation run: $AGENTIC_ABLATION_RUN"
 else
   echo "[3/9] Skipping agentic main run because RUN_AGENTIC=$RUN_AGENTIC"
   echo "[4/9] Skipping agentic no-physics run because RUN_AGENTIC=$RUN_AGENTIC"
+  AGENTIC_RUN=""
+  AGENTIC_ABLATION_RUN=""
 fi
 
 echo "[5/9] Main figures"
@@ -225,7 +236,7 @@ else
 fi
 
 echo "[9/9] Paper results manifest"
-bash paper_pipeline/04_write_results_manifest.sh "$MAIN_RUN" "$ABLATION_RUN" "$PAPER_RUN_DIR" "$AGENTIC_RUN" "$AGENTIC_ABLATION_RUN"
+bash paper_pipeline/04_write_results_manifest.sh "$MAIN_RUN" "$ABLATION_RUN" "$PAPER_RUN_DIR" "${AGENTIC_RUN:-}" "${AGENTIC_ABLATION_RUN:-}"
 
 echo "Paper pipeline complete"
 

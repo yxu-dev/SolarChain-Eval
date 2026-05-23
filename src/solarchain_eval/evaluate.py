@@ -154,8 +154,6 @@ def evaluate_policies(
     if "static" in set(summary["policy"]):
         static_slippage = float(summary.loc[summary["policy"].eq("static"), "mean_slippage"].iloc[0])
         summary["slippage_reduction_vs_static"] = (static_slippage - summary["mean_slippage"]) / max(static_slippage, 1e-9)
-    if "mock_llm_used" in summary:
-        summary["mock_llm_used"] = summary["mock_llm_used"].gt(0.0)
     summary.to_json(output / "summary.json", orient="records", indent=2)
     (output / "config_snapshot.json").write_text(_json_dumps_dataclass(config), encoding="utf-8")
     if agentic_config and agentic_config.save_agentic_logs:

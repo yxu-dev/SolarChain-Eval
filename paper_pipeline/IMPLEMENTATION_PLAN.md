@@ -95,7 +95,7 @@ print("base_url:", os.getenv("SOLARCHAIN_LLM_BASE_URL") or os.getenv("OPENAI_BAS
 PY
 ```
 
-如果 key 缺失，LLM mode 会自动使用 mock client，并在 `summary.json` 写出 `mock_llm_used=true`。这只能用于 smoke，不能用于最终论文 LLM 结果。
+如果启用 LLM mode，必须配置真实 API key、base url 和模型名。若 key 缺失、模型名缺失、endpoint 不可联通或 structured output 调用失败，实验会直接报错停止，不生成替代结果。
 
 ## 4. 数据准备
 
@@ -180,10 +180,10 @@ bash paper_pipeline/02_run_paper_experiments.sh
 PAPER_RUN_ID=paper_final
 ```
 
-则 paper batch 目录为：
+则统一输出目录为：
 
 ```text
-outputs/paper_runs/paper_final/
+outputs/paper_final/
 ```
 
 预期包含：
@@ -213,7 +213,7 @@ figures/agentic_no_physics_penalty/city_hour_liquidity_heatmap.png
 主实验 run：
 
 ```text
-outputs/runs/paper_final_main/
+outputs/paper_final/runs/main/
 ```
 
 预期包含：
@@ -233,7 +233,7 @@ models/dqn/dqn_model.zip
 no-physics run：
 
 ```text
-outputs/runs/paper_final_no_physics_penalty/
+outputs/paper_final/runs/no_physics_penalty/
 ```
 
 预期包含同样文件，并且 `run_metadata.json` 中 `no_physics_penalty=true`。
@@ -241,7 +241,7 @@ outputs/runs/paper_final_no_physics_penalty/
 agentic run：
 
 ```text
-outputs/runs/paper_final_agentic_llm_llm/
+outputs/paper_final/runs/agentic_llm_llm/
 ```
 
 预期包含：
@@ -259,7 +259,7 @@ agentic_logs.jsonl
 agentic no-physics run：
 
 ```text
-outputs/runs/paper_final_agentic_llm_llm_no_physics_penalty/
+outputs/paper_final/runs/agentic_llm_llm_no_physics_penalty/
 ```
 
 预期包含同样 agentic 文件。
@@ -286,7 +286,6 @@ agentic 表：
 - `action_modification_rate`
 - `avg_action_delta_from_auditor`
 - `llm_failure_count`
-- `mock_llm_used`
 
 安全消融：
 
@@ -298,12 +297,12 @@ agentic 表：
 
 正式实验完成后应满足：
 
-- `outputs/paper_runs/<paper_run_id>/PAPER_RESULTS.md` 存在。
+- `outputs/<paper_run_id>/PAPER_RESULTS.md` 存在。
 - 四组 figure 目录都存在 PNG。
 - main 和 ablation run 都有 PPO/SAC/DQN 模型。
 - agentic runs 都有 `agentic_logs.jsonl`。
-- 真实 LLM run 的 `summary.json` 中 `mock_llm_used=false`。
-- `llm_failure_count` 应接近 0；如果非 0，需要检查 endpoint、schema 兼容性或 refusal。
+- LLM agentic run 能成功完成并写出 `agentic_logs.jsonl`。
+- 若 API 不可联通或 schema 不兼容，run 应直接失败；需要检查 endpoint、模型、structured output 支持或 refusal。
 
 ## 10. 常见变体
 

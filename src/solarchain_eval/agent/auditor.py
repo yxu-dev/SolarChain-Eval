@@ -117,18 +117,14 @@ class LLMAuditor:
 
     def audit(self, step_context: dict[str, Any]) -> AuditorOutput:
         original = _action_from_context(step_context)
-        try:
-            payload = self.llm_client.audit_structured(auditor_messages(step_context))
-            audit, valid, error = validate_auditor_output(payload, self.config, original)
-            self.last_valid = valid
-            if not valid:
-                self.failure_count += 1
-                audit.reason = f"{audit.reason} Validation fallback: {error}"
-            return audit
-        except Exception as exc:
+        payload = self.llm_client.audit_structured(auditor_messages(step_context))
+        audit, valid, error = validate_auditor_output(payload, self.config, original)
+        self.last_valid = valid
+        if not valid:
             self.failure_count += 1
             self.last_valid = False
-            return approve_original_action(original, self.config, reason=f"LLM auditor fallback: {exc}")
+            raise RuntimeError(f"LLM auditor structured output validation failed: {error}")
+        return audit
 
 
 def should_audit_context(

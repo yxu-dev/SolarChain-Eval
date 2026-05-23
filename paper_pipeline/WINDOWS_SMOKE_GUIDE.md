@@ -75,13 +75,15 @@ python -c "import os; print(bool(os.getenv('SOLARCHAIN_LLM_API_KEY') or os.geten
 
 ```powershell
 $RunId = "win_smoke_tiny"
-$PaperDir = "outputs\paper_runs\$RunId"
-$MainRun = "outputs\runs\${RunId}_main"
-$AblationRun = "outputs\runs\${RunId}_no_physics_penalty"
-$AgenticRun = "outputs\runs\${RunId}_agentic_llm_llm"
-$AgenticAblationRun = "outputs\runs\${RunId}_agentic_llm_llm_no_physics_penalty"
+$PaperDir = "outputs\$RunId"
+$RunsDir = "$PaperDir\runs"
+$MainRun = "$RunsDir\main"
+$AblationRun = "$RunsDir\no_physics_penalty"
+$AgenticRun = "$RunsDir\agentic_llm_llm"
+$AgenticAblationRun = "$RunsDir\agentic_llm_llm_no_physics_penalty"
 
 New-Item -ItemType Directory -Force $PaperDir | Out-Null
+New-Item -ItemType Directory -Force $RunsDir | Out-Null
 New-Item -ItemType Directory -Force "$PaperDir\figures\main" | Out-Null
 New-Item -ItemType Directory -Force "$PaperDir\figures\ablation_no_physics_penalty" | Out-Null
 New-Item -ItemType Directory -Force "$PaperDir\figures\agentic" | Out-Null
@@ -121,7 +123,8 @@ python scripts\run_all_baselines.py `
   --config configs\month_2026_04.yaml `
   --timesteps 8 `
   --episodes 1 `
-  --run-name "${RunId}_main"
+  --output-dir "$RunsDir" `
+  --run-name main
 ```
 
 记录 run 路径：
@@ -149,7 +152,8 @@ python scripts\run_all_baselines.py `
   --config configs\month_2026_04.yaml `
   --timesteps 8 `
   --episodes 1 `
-  --run-name "${RunId}_no_physics_penalty" `
+  --output-dir "$RunsDir" `
+  --run-name no_physics_penalty `
   --no-physics-penalty
 ```
 
@@ -169,7 +173,8 @@ python scripts\evaluate.py `
   --ppo-model "$MainRun\models\ppo\ppo_model.zip" `
   --sac-model "$MainRun\models\sac\sac_model.zip" `
   --dqn-model "$MainRun\models\dqn\dqn_model.zip" `
-  --run-name "${RunId}_agentic_llm_llm" `
+  --output-dir "$RunsDir" `
+  --run-name agentic_llm_llm `
   --no-timestamp `
   --agentic-mode planner_auditor `
   --planner llm `
@@ -182,19 +187,13 @@ python scripts\evaluate.py `
 Set-Content -Path "$PaperDir\agentic_run.txt" -Value $AgenticRun
 ```
 
-检查是否真的调用了真实 endpoint：
+检查输出：
 
 ```powershell
 Get-Content "$AgenticRun\summary.json"
 ```
 
-正式 LLM smoke 中应看到：
-
-```json
-"mock_llm_used": false
-```
-
-如果是 `true`，说明 key 没有配置成功，当前只是 mock LLM smoke。
+如果 key、模型或 endpoint 配置错误，这一步会直接报错停止，不会生成替代结果。
 
 ## 9. 真实 LLM Agentic No-Physics Evaluation
 
@@ -208,7 +207,8 @@ python scripts\evaluate.py `
   --ppo-model "$AblationRun\models\ppo\ppo_model.zip" `
   --sac-model "$AblationRun\models\sac\sac_model.zip" `
   --dqn-model "$AblationRun\models\dqn\dqn_model.zip" `
-  --run-name "${RunId}_agentic_llm_llm_no_physics_penalty" `
+  --output-dir "$RunsDir" `
+  --run-name agentic_llm_llm_no_physics_penalty `
   --no-timestamp `
   --no-physics-penalty `
   --agentic-mode planner_auditor `
@@ -335,14 +335,14 @@ Get-ChildItem $PaperDir -Recurse
 - `$AgenticRun\agentic_logs.jsonl`
 - `$AgenticAblationRun\agentic_logs.jsonl`
 
-检查 LLM 状态：
+检查 LLM 输出：
 
 ```powershell
 Get-Content "$AgenticRun\summary.json"
 Get-Content "$AgenticAblationRun\summary.json"
 ```
 
-若要验证真实 LLM，`mock_llm_used` 必须为 `false`。如果为 `true`，请回到第 2 步重新配置 key、base url 和 model。
+若 API 不可联通、模型名错误或 endpoint 不支持 structured outputs，agentic evaluation 会直接失败。请回到第 2 步重新配置 key、base url 和 model。
 
 ## 13. 说明
 

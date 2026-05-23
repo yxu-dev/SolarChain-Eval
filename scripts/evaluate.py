@@ -95,7 +95,6 @@ def main() -> None:
         extra={
             "policies": [getattr(policy, "name", "policy") for policy in policies],
             "agentic": agentic_config.__dict__,
-            "mock_llm_used": bool(getattr(llm_client, "mock_used", False)) if llm_client else False,
         },
     )
     print(f"Wrote evaluation outputs to {output_dir}")

@@ -113,7 +113,7 @@ export SOLARCHAIN_LLM_BASE_URL="https://..."
 export SOLARCHAIN_LLM_MODEL="..."
 ```
 
-若未设置，则 fallback 到 OpenAI 标准变量：
+若未设置，则回退读取 OpenAI 标准变量：
 
 ```bash
 export OPENAI_API_KEY="..."
@@ -121,23 +121,26 @@ export OPENAI_BASE_URL="https://..."
 export OPENAI_MODEL="..."
 ```
 
-如果没有 API key，`--planner llm --auditor llm` 会自动使用 deterministic `MockLLMClient`，并在 `summary.json` 中记录：
-
-```json
-"mock_llm_used": true
-```
-
-注意：mock LLM 只用于软件 smoke，不可作为论文最终 LLM 实验结果。
+如果启用 `--planner llm` 或 `--auditor llm`，必须配置真实 API key 和模型名。若 API key 缺失、模型名缺失、endpoint 不可联通或 structured output 调用失败，评估会直接报错停止，不会生成替代结果。
 
 ## 6. 输出结构
 
-每个具体 run 写入：
+每次完整论文实验使用一个统一目录：
 
 ```text
-outputs/runs/<run_id>/
+outputs/<PAPER_RUN_ID>/
 ```
 
-baseline / ablation run 包含：
+其中各个 train + eval 子 run 写入：
+
+```text
+outputs/<PAPER_RUN_ID>/runs/main/
+outputs/<PAPER_RUN_ID>/runs/no_physics_penalty/
+outputs/<PAPER_RUN_ID>/runs/agentic_llm_llm/
+outputs/<PAPER_RUN_ID>/runs/agentic_llm_llm_no_physics_penalty/
+```
+
+baseline / ablation 子 run 包含：
 
 - `metrics.csv`
 - `summary.json`
@@ -155,10 +158,10 @@ agentic run 额外包含：
 - `summary.json` 中的 agentic metrics
 - `actions.csv` 中的 agentic action metadata
 
-每个 paper batch 写入：
+图表和论文清单也保存在同一个目录下：
 
 ```text
-outputs/paper_runs/<paper_run_id>/
+outputs/<PAPER_RUN_ID>/
 ```
 
 包含：
@@ -195,7 +198,6 @@ agentic 表建议额外报告：
 - `action_modification_rate`
 - `avg_action_delta_from_auditor`
 - `llm_failure_count`
-- `mock_llm_used`
 
 ## 8. 图表
 
