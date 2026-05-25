@@ -211,19 +211,51 @@ bash paper_pipeline/02_run_paper_experiments.sh
 
 在 3 个 LLM seed 完成后，建议额外跑 1 个 rule agentic 对照，用于区分“agentic guardrail 结构本身”和“LLM structured reasoning”的贡献。该对照不替代 LLM 主结果，可作为补充消融或 appendix 结果。
 
-推荐 rule agentic run：
+rule agentic 应复用 `paper_final_seed_20260511` 已训练好的 PPO/SAC/DQN 模型，只重新运行 evaluation，不要再调用完整 `02_run_paper_experiments.sh` 重新训练。这样可以保证对照只改变 Planner/Auditor 类型，而不改变底层 RL policy。
+
+rule agentic 结果必须写入单独目录 `outputs/paper_rule_agentic_seed_20260511/`，不要和 `outputs/paper_final_seed_20260511/` 混在一起。
+
+推荐 rule agentic main 复用 run：
 
 ```bash
-CONFIG=outputs/multiseed_configs/month_2026_04_seed_20260511.yaml \
-PAPER_RUN_ID=paper_rule_agentic_seed_20260511 \
-TIMESTEPS=300000 \
-EPISODES=30 \
-RUN_AGENTIC=1 \
-AGENTIC_POLICIES=ppo,sac,dqn \
-AGENTIC_PLANNER=rule \
-AGENTIC_AUDITOR=rule \
-AGENTIC_AUDIT_TRIGGER=event \
-bash paper_pipeline/02_run_paper_experiments.sh
+mkdir -p outputs/paper_rule_agentic_seed_20260511/runs
+
+python scripts/evaluate.py \
+  --config outputs/multiseed_configs/month_2026_04_seed_20260511.yaml \
+  --policies ppo,sac,dqn \
+  --episodes 30 \
+  --ppo-model outputs/paper_final_seed_20260511/runs/main/models/ppo/ppo_model.zip \
+  --sac-model outputs/paper_final_seed_20260511/runs/main/models/sac/sac_model.zip \
+  --dqn-model outputs/paper_final_seed_20260511/runs/main/models/dqn/dqn_model.zip \
+  --output-dir outputs/paper_rule_agentic_seed_20260511/runs \
+  --run-name agentic_rule_rule \
+  --no-timestamp \
+  --agentic-mode planner_auditor \
+  --planner rule \
+  --auditor rule \
+  --audit-trigger event \
+  --save-agentic-logs
+```
+
+推荐 rule agentic no-physics 复用 run：
+
+```bash
+python scripts/evaluate.py \
+  --config outputs/multiseed_configs/month_2026_04_seed_20260511.yaml \
+  --policies ppo,sac,dqn \
+  --episodes 30 \
+  --ppo-model outputs/paper_final_seed_20260511/runs/no_physics_penalty/models/ppo/ppo_model.zip \
+  --sac-model outputs/paper_final_seed_20260511/runs/no_physics_penalty/models/sac/sac_model.zip \
+  --dqn-model outputs/paper_final_seed_20260511/runs/no_physics_penalty/models/dqn/dqn_model.zip \
+  --output-dir outputs/paper_rule_agentic_seed_20260511/runs \
+  --run-name agentic_rule_rule_no_physics_penalty \
+  --no-timestamp \
+  --no-physics-penalty \
+  --agentic-mode planner_auditor \
+  --planner rule \
+  --auditor rule \
+  --audit-trigger event \
+  --save-agentic-logs
 ```
 
 如果要先做低成本正式结构检查：
@@ -391,16 +423,26 @@ agentic 表：
 
 ## 10. 常见变体
 
-只跑 rule agentic 对照：
+只跑 rule agentic 对照时，复用 `paper_final_seed_20260511` 的已训练模型，并写入单独目录：
 
 ```bash
-CONFIG=outputs/multiseed_configs/month_2026_04_seed_20260511.yaml \
-PAPER_RUN_ID=paper_rule_agentic_seed_20260511 \
-TIMESTEPS=300000 \
-EPISODES=30 \
-AGENTIC_PLANNER=rule \
-AGENTIC_AUDITOR=rule \
-bash paper_pipeline/02_run_paper_experiments.sh
+mkdir -p outputs/paper_rule_agentic_seed_20260511/runs
+
+python scripts/evaluate.py \
+  --config outputs/multiseed_configs/month_2026_04_seed_20260511.yaml \
+  --policies ppo,sac,dqn \
+  --episodes 30 \
+  --ppo-model outputs/paper_final_seed_20260511/runs/main/models/ppo/ppo_model.zip \
+  --sac-model outputs/paper_final_seed_20260511/runs/main/models/sac/sac_model.zip \
+  --dqn-model outputs/paper_final_seed_20260511/runs/main/models/dqn/dqn_model.zip \
+  --output-dir outputs/paper_rule_agentic_seed_20260511/runs \
+  --run-name agentic_rule_rule \
+  --no-timestamp \
+  --agentic-mode planner_auditor \
+  --planner rule \
+  --auditor rule \
+  --audit-trigger event \
+  --save-agentic-logs
 ```
 
 跳过 agentic：
@@ -413,4 +455,10 @@ RUN_AGENTIC=0 bash paper_pipeline/02_run_paper_experiments.sh
 
 ```bash
 PAPER_RUN_ID=debug TIMESTEPS=2048 EPISODES=2 bash paper_pipeline/02_run_paper_experiments.sh
+```
+
+如果 `paper_final_seed_20260511` 已经完成训练，但在 `[3/9]` LLM agentic evaluation 中断，请不要重新运行完整 pipeline。恢复步骤见：
+
+```text
+paper_pipeline/RESUME_AFTER_STEP3_INTERRUPTION.md
 ```
