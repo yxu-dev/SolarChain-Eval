@@ -8,6 +8,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 from .actions import decode_continuous_action, decode_discrete_action
 from .agent.llm_client import make_llm_client
@@ -105,6 +106,7 @@ def evaluate_policies(
     output_dir: str | Path,
     agentic_config: AgenticConfig | None = None,
     llm_client: Any | None = None,
+    show_progress: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
@@ -113,35 +115,48 @@ def evaluate_policies(
     city_hour_rows: list[dict[str, Any]] = []
     agentic_log_rows: list[dict[str, Any]] = []
 
-    for policy in policies:
-        name = getattr(policy, "name", "policy")
-        for episode in range(episodes):
-            metrics, steps, agentic_logs = _run_episode_impl(
-                policy,
-                config,
-                config.seed + episode,
-                episode,
-                name,
-                agentic_config,
-                llm_client,
-            )
-            metric_rows.append(metrics)
-            agentic_log_rows.extend(agentic_logs)
-            for row in steps:
-                action_rows.append({key: value for key, value in row.items() if key != "city_rewards"})
-                for city, value in row.get("city_rewards", {}).items():
-                    city_hour_rows.append(
-                        {
-                            "policy": name,
-                            "episode": episode,
-                            "hour": row["hour"],
-                            "city": city,
-                            "city_reward": float(value),
-                            "reward_ratio": row["reward_ratio"],
-                            "liquidity_ratio": row["liquidity_ratio"],
-                            "burn_rate": row["burn_rate"],
-                        }
-                    )
+    total_episodes = len(policies) * episodes
+    progress = tqdm(
+        total=total_episodes,
+        desc="Evaluating policies",
+        unit="episode",
+        disable=not show_progress,
+        dynamic_ncols=True,
+    )
+    try:
+        for policy in policies:
+            name = getattr(policy, "name", "policy")
+            for episode in range(episodes):
+                progress.set_postfix(policy=name, episode=f"{episode + 1}/{episodes}")
+                metrics, steps, agentic_logs = _run_episode_impl(
+                    policy,
+                    config,
+                    config.seed + episode,
+                    episode,
+                    name,
+                    agentic_config,
+                    llm_client,
+                )
+                metric_rows.append(metrics)
+                agentic_log_rows.extend(agentic_logs)
+                for row in steps:
+                    action_rows.append({key: value for key, value in row.items() if key != "city_rewards"})
+                    for city, value in row.get("city_rewards", {}).items():
+                        city_hour_rows.append(
+                            {
+                                "policy": name,
+                                "episode": episode,
+                                "hour": row["hour"],
+                                "city": city,
+                                "city_reward": float(value),
+                                "reward_ratio": row["reward_ratio"],
+                                "liquidity_ratio": row["liquidity_ratio"],
+                                "burn_rate": row["burn_rate"],
+                            }
+                        )
+                progress.update(1)
+    finally:
+        progress.close()
 
     metrics_frame = pd.DataFrame(metric_rows)
     actions_frame = pd.DataFrame(action_rows)

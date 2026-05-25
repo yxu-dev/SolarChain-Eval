@@ -26,6 +26,7 @@ def main() -> None:
     parser.add_argument("--run-name", default=None)
     parser.add_argument("--skip-rl", action="store_true")
     parser.add_argument("--no-physics-penalty", action="store_true")
+    parser.add_argument("--no-progress", action="store_true")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -52,7 +53,7 @@ def main() -> None:
         policies.append(SB3Policy(DQN.load(model_paths["dqn"]), "dqn"))
 
     config.action_mode = "continuous"
-    evaluate_policies(policies, config, args.episodes, run_dir)
+    evaluate_policies(policies, config, args.episodes, run_dir, show_progress=not args.no_progress)
     write_run_metadata(
         run_dir,
         run_type="run_all_baselines",

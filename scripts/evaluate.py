@@ -38,6 +38,7 @@ def main() -> None:
     parser.add_argument("--llm-model", default=None)
     parser.add_argument("--llm-base-url", default=None)
     parser.add_argument("--save-agentic-logs", action="store_true")
+    parser.add_argument("--no-progress", action="store_true")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -86,6 +87,7 @@ def main() -> None:
         output_dir,
         agentic_config=agentic_config if args.agentic_mode != "none" else None,
         llm_client=llm_client,
+        show_progress=not args.no_progress,
     )
     write_run_metadata(
         output_dir,
