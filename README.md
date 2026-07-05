@@ -254,11 +254,7 @@ python scripts/evaluate.py --help
 
 ## Reproducibility
 
-The authoritative reproducibility guide is:
+For full artifact reproduction instructions, see [artifact_pipeline/README.md](artifact_pipeline/README.md).
 
-```text
-artifact_pipeline/README.md
-```
-
-It documents the official Linux artifact pipeline, output layout, resume guidance, metrics, figures, and acceptance checks. If any detail in this root README conflicts with `artifact_pipeline/README.md`, use `artifact_pipeline/README.md` as the source of truth.
+It documents the official Linux artifact pipeline, output layout, resume guidance, metrics, figures, and acceptance checks.
 
