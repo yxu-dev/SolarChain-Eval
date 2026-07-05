@@ -1,68 +1,83 @@
-# SolarChain-Eval
+﻿<h2 align="center">SolarChain-Eval: A Physics-Constrained Benchmark for Trustworthy Economic Agents in Decentralized Energy Markets</h2>
 
-**SolarChain-Eval: A Physics-Constrained Benchmark for Trustworthy Economic Agents in Decentralized Energy Markets**
+<p align="center">
+  <b>Shilin Ou</b><sup>1,*</sup> &nbsp;&bull;&nbsp;
+  <b>Yifan Xu</b><sup>1,*</sup> &nbsp;&bull;&nbsp;
+  <b>Luyao Zhang</b><sup>1</sup>
+</p>
 
-SolarChain-Eval is a benchmark for evaluating autonomous economic governors in decentralized peer-to-peer solar energy markets. The benchmark focuses on whether reward-maximizing agents can remain trustworthy when market decisions are bounded by physical ground truth.
+<p align="center">
+  <sup>1</sup>Duke Kunshan University &nbsp;&bull;&nbsp;
+  <sup>*</sup>Equal contribution
+</p>
+
+<p align="center">
+  Accepted at the <a href="https://kdd-eval-workshop.github.io/agenticai-evaluation-kdd2026/">KDD Workshop on Evaluation and Trustworthiness of Agentic AI 2026</a>
+</p>
+
+<p align="center">
+  <a href="https://openreview.net/forum?id=XcWTS5iVvY"><img src="https://img.shields.io/badge/OpenReview-Paper-red.svg" alt="OpenReview"></a>
+  <a href="https://github.com/yxu-dev/SolarChain-Eval"><img src="https://img.shields.io/badge/GitHub-Code-blue.svg" alt="GitHub"></a>
+  <a href="https://huggingface.co/datasets/ThomasXu/solarchain-eval"><img src="https://img.shields.io/badge/HuggingFace-Dataset-yellow.svg" alt="Hugging Face Dataset"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License: MIT"></a>
+</p>
+
+<p align="center">
+  <img src="assets/front_page.png" width="85%" alt="SolarChain-Eval benchmark overview">
+</p>
+
+## Abstract
+
+SolarChain-Eval is a physics-constrained benchmark for evaluating trustworthy economic agents in decentralized peer-to-peer solar energy markets. It formulates market governance as a Gymnasium-compatible Markov Decision Process where agents make hourly decisions over reward allocation, liquidity support, and token burning. The benchmark evaluates policies across market utility, physical safety, slippage, action smoothness, spatial fairness, and auditability. It also includes an evaluation-only LLM Planner/Auditor layer that defines episode-level action bounds, triggers audits under risk signals, revises high-risk actions, and records structured intervention traces. Experiments with static, random, myopic, RL, and RL+LLM policies show a clear utility-safety trade-off: RL agents can improve economic utility, but reward-maximizing behavior may exploit invalid generation and inflate artificial liquidity when physics penalties are removed. The agentic governance layer improves auditability and mitigates selected risks, but it cannot fully compensate for a misspecified reward. SolarChain-Eval therefore emphasizes that trustworthy agentic AI evaluation in cyber-physical markets requires both physical constraints and transparent intervention records.
 
 ## Motivation
 
-Agentic AI and cyber-physical systems create new opportunities for autonomous economic governance in decentralized energy markets. In peer-to-peer solar trading, reinforcement learning agents may be asked to manage market liquidity, token issuance, and incentive distribution. Unlike purely digital environments, however, solar markets are constrained by localized irradiance, photovoltaic capacity, verification status, and false-data injection risk.
+Agentic AI systems are increasingly applied to cyber-physical and economic settings where actions affect physical resources, market incentives, and system safety. Decentralized energy markets are a representative case: autonomous policies may improve liquidity and trading efficiency, but their decisions remain bounded by localized irradiance, photovoltaic capacity, verified generation, and false-data injection risk.
 
-This setting creates a core evaluation problem: a reward-maximizing agent may improve short-term liquidity by accepting impossible generation data. Under false data injection attacks, an unsafe governor can back invalid supply and create artificial liquidity, damaging market integrity even when reward appears high.
+This creates a central evaluation problem: scalar reward is not enough. A reward-maximizing policy may improve apparent market utility by economically backing invalid or physically impossible generation. Under false-data injection attacks, this behavior can create artificial liquidity and degrade market integrity even when cumulative reward increases.
 
-SolarChain-Eval evaluates agents as autonomous market administrators. At each hour, an agent controls:
+SolarChain-Eval evaluates autonomous market policies under this utility-safety tension. At each hour, an agent controls:
 
 - reward allocation between producers and the liquidity pool,
-- liquidity provisioning,
+- liquidity support,
 - token burn rate.
 
-The benchmark evaluates those decisions with both economic utility and trustworthiness metrics.
+The benchmark evaluates these decisions across market utility, physical safety, market stability, action smoothness, spatial fairness, and auditability.
 
-## Research Questions
+## Benchmark Design
 
-**RQ1:** How do RL agents balance economic utility and trustworthiness metrics compared to static and heuristic baselines in a decentralized energy market?
+SolarChain-Eval connects solar generation, peer-to-peer market activity, physics labels, policy rollouts, and trustworthiness evidence in one reproducible benchmark loop.
 
-**RQ2:** To what extent do reward-maximizing agents exploit invalid generation to artificially inflate market liquidity when physics-informed penalties are removed?
-
-**RQ3:** How do agents' dynamic governance decisions on reward allocation, liquidity provisioning, and token burns affect market stability, action reliability, and spatial fairness across urban energy nodes?
-
-## Benchmark Components
-
-The environment is implemented as a Gymnasium benchmark:
+The environment is implemented as a Gymnasium-compatible MDP:
 
 ```text
 src/solarchain_eval/env.py
 ```
 
-The main paper configuration uses the five-city April 2026 dataset:
+Each episode represents a 24-hour market cycle sampled from the April 2026 dataset. The state includes time, verified and reported generation, physical PV limits, supply-demand gap, liquidity, token price, physics-risk signals, static-market slippage, and the previous action. The action is:
+
+```text
+(reward_ratio, liquidity_ratio, burn_rate)
+```
+
+The benchmark uses an action sanitizer and allocation budget so executed actions remain within market constraints.
+
+The accepted-paper configuration uses a five-city dataset:
 
 ```text
 configs/month_2026_04.yaml
 data/datasets_2026_04_month/
 ```
 
-## Dataset Hosting
+Dataset summary:
 
-Canonical dataset hosting is planned on Hugging Face Datasets:
+- Cities: Beijing, Shanghai, Chengdu, Shenzhen, Hangzhou
+- Energy nodes: 50
+- Period: 2026-04-01 to 2026-04-30
+- Hourly market states: 720
+- Generation records: 36,000
 
-```text
-https://huggingface.co/datasets/ThomasXu/solarchain-eval
-```
-
-The GitHub repository keeps a small mirror under:
-
-```text
-data/datasets_2026_04_month/
-data/datasets/
-```
-
-The Hugging Face release includes the dataset card, dataset license, summary, checksums, main monthly CSVs, smoke CSVs, and the Open-Meteo cache. The public GitHub repository is:
-
-```text
-https://github.com/GreenComp-ERC/SolarChain-Eval
-```
-
-Built-in policy comparisons:
+The benchmark compares:
 
 - Static 1:3 split
 - Random
@@ -71,13 +86,42 @@ Built-in policy comparisons:
 - SAC
 - DQN with a discretized action grid
 
-The repository also includes an optional eval-only agentic extension:
+The evaluation suite has three main settings:
+
+- Main benchmark: evaluates all policies under the physics-constrained reward.
+- Reward ablation: removes the physics penalty while still logging physical violations and artificial liquidity.
+- Agentic evaluation: inserts an LLM-based governance layer between trained RL policies and the environment during evaluation only.
+
+Together, these settings expose the paper's main finding: learned RL policies can improve economic utility, but reward optimization alone can introduce unsafe market behavior. Physics constraints and transparent intervention traces are both needed to evaluate whether an autonomous economic agent is not only profitable, but also verifiable and physically grounded.
+
+## Agentic Planner/Auditor Layer
+
+The optional agentic layer is active only during evaluation and is never used during PPO, SAC, or DQN training. It contains:
 
 - LLM Planner
 - LLM Auditor
 - Rule Planner/Auditor baselines
 
-The LLM layer is used only during evaluation. It is never used during PPO, SAC, or DQN training.
+The Planner defines episode-level action bounds and audit rules. The Auditor is invoked under risk triggers and can approve or revise high-risk actions before the environment step. Structured logs record trigger signals, proposed actions, revised actions, action deltas, and audit rationales.
+
+This layer is intended as an auditable risk-control interface, not as a replacement for a correctly specified physics-constrained reward. The paper's ablation results show that LLM governance can mitigate selected risks and make interventions traceable, but it cannot fully compensate when reward maximization is allowed to ignore physical constraints.
+
+## Dataset Hosting
+
+The dataset is hosted on Hugging Face Datasets:
+
+```text
+https://huggingface.co/datasets/ThomasXu/solarchain-eval
+```
+
+The GitHub repository keeps a small data mirror for lightweight reproducibility:
+
+```text
+data/datasets_2026_04_month/
+data/datasets/
+```
+
+The Hugging Face release includes the dataset card, dataset license, summary, checksums, main monthly CSVs, smoke CSVs, and the Open-Meteo cache.
 
 ## Setup
 
@@ -100,92 +144,121 @@ python scripts/make_figures.py \
   --run-dir outputs/runs/<timestamp>_eval
 ```
 
-## Official Artifact Pipeline
+## Framework CLI
 
-The authoritative experiment and artifact documentation lives in:
+SolarChain-Eval can also be used directly as a benchmark framework without running the full artifact pipeline. All commands below should be run from the repository root after activating the environment.
 
-```text
-artifact_pipeline/
-```
-
-Convenience Linux scripts are available:
+Generate or refresh a five-city monthly dataset:
 
 ```bash
-bash artifact_pipeline/00_setup_linux.sh
-bash artifact_pipeline/01_smoke_check.sh
-PAPER_RUN_ID=paper_final_seed_20260511 TIMESTEPS=300000 EPISODES=30 bash artifact_pipeline/02_run_paper_experiments.sh
+python scripts/generate_monthly_datasets.py \
+  --start-date 2026-04-01 \
+  --end-date 2026-05-01 \
+  --output-dir data/datasets_2026_04_month \
+  --seed 20260511
 ```
 
-If any detail in this root README conflicts with `artifact_pipeline/README.md`, use `artifact_pipeline/README.md` as the source of truth.
+Train one RL baseline:
 
-## Outputs
-
-The official pipeline writes all artifacts under:
-
-```text
-outputs/<PAPER_RUN_ID>/
+```bash
+python scripts/train.py \
+  --config configs/month_2026_04.yaml \
+  --algo ppo \
+  --timesteps 100000 \
+  --output-dir outputs/runs \
+  --run-name ppo_train
 ```
 
-Expected subruns:
+Run the built-in baseline suite:
 
-```text
-outputs/<PAPER_RUN_ID>/runs/main/
-outputs/<PAPER_RUN_ID>/runs/no_physics_penalty/
-outputs/<PAPER_RUN_ID>/runs/agentic_llm_llm/
-outputs/<PAPER_RUN_ID>/runs/agentic_llm_llm_no_physics_penalty/
+```bash
+python scripts/run_all_baselines.py \
+  --config configs/month_2026_04.yaml \
+  --timesteps 100000 \
+  --episodes 10 \
+  --output-dir outputs/runs \
+  --run-name main
 ```
 
-Each evaluation bundle contains:
+Run the no-physics-penalty ablation:
 
-- `metrics.csv`
-- `summary.json`
-- `actions.csv`
-- `city_hour_policy.csv`
-- `config_snapshot.json`
-- `run_metadata.json`
+```bash
+python scripts/run_all_baselines.py \
+  --config configs/month_2026_04.yaml \
+  --timesteps 100000 \
+  --episodes 10 \
+  --output-dir outputs/runs \
+  --run-name no_physics_penalty \
+  --no-physics-penalty
+```
 
-Agentic evaluation additionally writes:
+Evaluate selected policies, optionally using trained models:
 
-- `agentic_logs.jsonl`
+```bash
+python scripts/evaluate.py \
+  --config configs/month_2026_04.yaml \
+  --policies "static,random,myopic,ppo" \
+  --episodes 10 \
+  --ppo-model outputs/runs/main/models/ppo/ppo_model.zip \
+  --output-dir outputs/runs \
+  --run-name eval_selected
+```
 
-## Metrics And Figures
+Run the evaluation-only planner/auditor layer with rule components:
 
-Primary trustworthiness and utility metrics:
+```bash
+python scripts/evaluate.py \
+  --config configs/month_2026_04.yaml \
+  --policies "ppo,sac,dqn" \
+  --episodes 10 \
+  --ppo-model outputs/runs/main/models/ppo/ppo_model.zip \
+  --sac-model outputs/runs/main/models/sac/sac_model.zip \
+  --dqn-model outputs/runs/main/models/dqn/dqn_model.zip \
+  --output-dir outputs/runs \
+  --run-name agentic_rule_rule \
+  --agentic-mode planner_auditor \
+  --planner rule \
+  --auditor rule \
+  --audit-trigger event \
+  --save-agentic-logs
+```
 
-- `cumulative_reward`
-- `physics_violation_rate`
-- `max_drawdown`
-- `max_token_drawdown`
-- `action_jitter`
-- `mean_slippage`
-- `slippage_reduction_vs_static`
-- `spatial_fairness_index`
-- `artificial_liquidity_MWh`
+For LLM planner/auditor runs, configure an OpenAI-compatible endpoint first:
 
-Agentic extension metrics:
+```bash
+export SOLARCHAIN_LLM_API_KEY="..."
+export SOLARCHAIN_LLM_BASE_URL="https://..."
+export SOLARCHAIN_LLM_MODEL="..."
+```
 
-- `plan_validity_rate`
-- `audit_call_rate`
-- `revision_rate`
-- `action_modification_rate`
-- `avg_action_delta_from_auditor`
-- `llm_failure_count`
-- `audit_budget_per_episode`
-- `target_audit_rate`
-- `audit_cooldown_steps`
+Then replace `--planner rule --auditor rule` with:
 
-Generated figures:
+```bash
+--planner llm --auditor llm
+```
 
-- `learning_curves.png`
-- `safety_utility_frontier.png`
-- `city_hour_liquidity_heatmap.png`
+Generate figures for any completed run:
+
+```bash
+python scripts/make_figures.py \
+  --config configs/month_2026_04.yaml \
+  --run-dir outputs/runs/main \
+  --figures-dir figures/main
+```
+
+Use `--help` on any script to inspect the full argument list, for example:
+
+```bash
+python scripts/evaluate.py --help
+```
 
 ## Reproducibility
 
-For the full artifact plan, see:
+The authoritative reproducibility guide is:
 
 ```text
 artifact_pipeline/README.md
-artifact_pipeline/REPRODUCIBILITY_PLAN.md
-artifact_pipeline/LINUX_REPRODUCTION_RECOVERY.md
 ```
+
+It documents the official Linux artifact pipeline, output layout, resume guidance, metrics, figures, and acceptance checks. If any detail in this root README conflicts with `artifact_pipeline/README.md`, use `artifact_pipeline/README.md` as the source of truth.
+

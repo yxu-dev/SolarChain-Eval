@@ -18,7 +18,11 @@ cat > "$MANIFEST" <<EOF
 
 Generated at UTC: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-This manifest summarizes the experiment artifacts for the planned **KDD Workshop on Evaluation and Trustworthiness of Agentic AI** submission.
+This manifest summarizes the experiment artifacts for the accepted SolarChain-Eval paper.
+
+Paper: https://openreview.net/forum?id=XcWTS5iVvY
+
+Code: https://github.com/yxu-dev/SolarChain-Eval
 
 ## Unified Output Directory
 

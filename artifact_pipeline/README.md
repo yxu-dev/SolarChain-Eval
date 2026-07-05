@@ -1,46 +1,31 @@
 # SolarChain-Eval Artifact Pipeline
 
-This directory contains the official artifact workflow for **SolarChain-Eval: A Physics-Constrained Benchmark for Trustworthy Economic Agents in Decentralized Energy Markets**.
+This directory contains the official reproducibility workflow for **SolarChain-Eval: A Physics-Constrained Benchmark for Trustworthy Economic Agents in Decentralized Energy Markets**.
 
-The root `README.md` gives a concise project overview. This file is the source of truth for experiment execution, output layout, and artifact-to-paper mapping.
+The root `README.md` gives a concise project overview. This file is the source of truth for experiment execution, output layout, resume guidance, and artifact-to-paper mapping.
 
 ## Benchmark Story
 
 SolarChain-Eval evaluates autonomous economic governors for decentralized peer-to-peer solar energy markets. The agent controls hourly reward allocation, liquidity provisioning, and token burns. The evaluation goes beyond reward maximization by measuring whether an agent respects physical constraints, avoids artificial liquidity, maintains market stability, and distributes rewards fairly across urban energy nodes.
 
-The main risks are cyber-physical: a reward-maximizing policy can learn to back invalid or physically impossible generation, especially when the physics-informed reward penalty is removed. This is tested directly with the no-physics-penalty ablation.
-
-## Research Questions
-
-**RQ1:** How do RL agents balance economic utility and trustworthiness metrics compared to static and heuristic baselines in a decentralized energy market?
-
-**RQ2:** To what extent do reward-maximizing agents exploit invalid generation to artificially inflate market liquidity when physics-informed penalties are removed?
-
-**RQ3:** How do agents' dynamic governance decisions on reward allocation, liquidity provisioning, and token burns affect market stability, action reliability, and spatial fairness across urban energy nodes?
-
-## Directory Contents
-
-```text
-artifact_pipeline/
-  00_setup_linux.sh
-  01_smoke_check.sh
-  02_run_paper_experiments.sh
-  03_make_figures_for_run.sh
-  04_write_results_manifest.sh
-  README.md
-  REPRODUCIBILITY_PLAN.md
-  LINUX_REPRODUCTION_RECOVERY.md
-```
-
-The shell scripts are convenience automation. `LINUX_REPRODUCTION_RECOVERY.md` provides direct Linux commands for reproducing and recovering any run configured through the variables at the top of that document. Its defaults reproduce `paper_final_seed_20260511`.
+The main cyber-physical risk is that a reward-maximizing policy can learn to back invalid or physically impossible generation, especially when the physics-informed reward penalty is removed. The no-physics-penalty ablation tests this risk directly.
 
 ## Environment
+
+The artifact was prepared for a Conda environment named `SolarChain-rl`.
 
 ```bash
 conda create -n SolarChain-rl python=3.10 -y
 conda activate SolarChain-rl
 python -m pip install -r requirements.txt
 python -m pip install -e .
+```
+
+For a quick local check:
+
+```bash
+python -m pytest -q
+bash artifact_pipeline/01_smoke_check.sh
 ```
 
 LLM evaluations require a real OpenAI-compatible endpoint:
@@ -61,25 +46,40 @@ export OPENAI_MODEL="..."
 
 If `--planner llm` or `--auditor llm` is enabled and the endpoint is missing or incompatible with structured outputs, evaluation fails instead of silently producing substitute results.
 
-## Dataset Hosting
+## Dataset
 
-The canonical dataset URL is:
+The hosted dataset is available at:
 
 ```text
 https://huggingface.co/datasets/ThomasXu/solarchain-eval
 ```
 
-The GitHub repository retains a mirror in `data/` for lightweight reproducibility. The HF package contains `dataset_summary.json` and `checksums.sha256`. Use those files to verify that the HF release, GitHub mirror, and local data are consistent.
+The GitHub repository retains a lightweight data mirror in `data/`. The Hugging Face package contains `dataset_summary.json` and `checksums.sha256`; use those files to verify that the hosted dataset, GitHub mirror, and local data are consistent.
 
-Public code repository:
+Accepted-paper configuration:
 
 ```text
-https://github.com/GreenComp-ERC/SolarChain-Eval
+configs/month_2026_04.yaml
+data/datasets_2026_04_month/
 ```
+
+Dataset window:
+
+```text
+[2026-04-01, 2026-05-01)
+```
+
+Expected data shape:
+
+- five cities: Beijing, Shanghai, Chengdu, Shenzhen, Hangzhou
+- 50 PV nodes
+- 720 hourly timestamps
+- 36,000 generation rows
+- 720 market rows
 
 ## Official Pipeline
 
-The main convenience command is:
+Run all accepted-paper artifact stages from the repository root:
 
 ```bash
 PAPER_RUN_ID=paper_final_seed_20260511 \
@@ -93,15 +93,7 @@ AGENTIC_AUDIT_TRIGGER=event \
 bash artifact_pipeline/02_run_paper_experiments.sh
 ```
 
-For a quick Linux check:
-
-```bash
-bash artifact_pipeline/01_smoke_check.sh
-```
-
-## Pipeline Stages
-
-The full pipeline executes:
+The pipeline executes:
 
 ```text
 [0/9] dataset/config/metadata preparation
@@ -116,17 +108,13 @@ The full pipeline executes:
 [9/9] final manifest
 ```
 
-If a run stops at any stage, use `LINUX_REPRODUCTION_RECOVERY.md` to resume from the last completed checkpoint without rerunning completed training.
-
-## Output Layout
-
 All artifacts for one paper run are written under:
 
 ```text
 outputs/<PAPER_RUN_ID>/
 ```
 
-For `PAPER_RUN_ID=paper_final_seed_20260511`:
+For `PAPER_RUN_ID=paper_final_seed_20260511`, the expected layout is:
 
 ```text
 outputs/paper_final_seed_20260511/
@@ -149,11 +137,43 @@ outputs/paper_final_seed_20260511/
     agentic_no_physics_penalty/
 ```
 
-## Table Mapping
+Each evaluation run contains:
+
+- `metrics.csv`
+- `summary.json`
+- `actions.csv`
+- `city_hour_policy.csv`
+- `config_snapshot.json`
+- `run_metadata.json`
+
+Agentic evaluation additionally writes `agentic_logs.jsonl`.
+
+## Resume Guidance
+
+Do not rerun completed training unless its output is missing or known to be invalid. If a stage has partial output, archive the partial run directory first, then rerun only that stage.
+
+Completion evidence by stage:
+
+| Stage | Completion evidence |
+|---|---|
+| `[0/9]` dataset/config/metadata preparation | config file, `dataset_summary.json`, `paper_run_metadata.json` |
+| `[1/9]` main six-baseline run | `runs/main/summary.json`, PPO/SAC/DQN model files |
+| `[2/9]` no-physics ablation | `runs/no_physics_penalty/summary.json`, PPO/SAC/DQN model files |
+| `[3/9]` LLM agentic main evaluation | `runs/agentic_llm_llm/summary.json`, `agentic_logs.jsonl` |
+| `[4/9]` LLM agentic no-physics evaluation | `runs/agentic_llm_llm_no_physics_penalty/summary.json`, `agentic_logs.jsonl` |
+| `[5/9]` main figures | PNG files under `figures/main/` |
+| `[6/9]` ablation figures | PNG files under `figures/ablation_no_physics_penalty/` |
+| `[7/9]` agentic figures | PNG files under `figures/agentic/` |
+| `[8/9]` agentic no-physics figures | PNG files under `figures/agentic_no_physics_penalty/` |
+| `[9/9]` final manifest | `PAPER_RESULTS.md` |
+
+The direct stage commands are the commands used inside `artifact_pipeline/02_run_paper_experiments.sh`. Use the same environment variables and run names shown above when recovering a run manually.
+
+## Metrics And Figures
 
 Use `summary.json` and `metrics.csv` from each run for policy-level tables.
 
-Primary table metrics:
+Primary trustworthiness and utility metrics:
 
 - `cumulative_reward`
 - `physics_violation_rate`
@@ -177,8 +197,6 @@ Agentic extension metrics:
 - `target_audit_rate`
 - `audit_cooldown_steps`
 
-## Figure Mapping
-
 Each figure directory contains:
 
 - `learning_curves.png`: reward by episode and policy.
@@ -189,7 +207,7 @@ Recommended paper mapping:
 
 - Main benchmark figure: `figures/main/`
 - Reward-misspecification ablation: `figures/ablation_no_physics_penalty/`
-- Eval-only agentic extension: `figures/agentic/`
+- Evaluation-only agentic extension: `figures/agentic/`
 - Agentic no-physics comparison: `figures/agentic_no_physics_penalty/`
 
 ## Acceptance Checks
@@ -203,3 +221,5 @@ test -s outputs/paper_final_seed_20260511/runs/main/models/dqn/dqn_model.zip
 test -s outputs/paper_final_seed_20260511/runs/agentic_llm_llm/agentic_logs.jsonl
 find outputs/paper_final_seed_20260511/figures -name "*.png" -type f
 ```
+
+LLM structured-output failures should stop the run. Formal LLM results must not be replaced by mock outputs. If an endpoint fails, fix the API key, model, base URL, or structured-output compatibility and rerun the interrupted stage.
